@@ -5,6 +5,19 @@ const puppeteer = require('puppeteer');
 const db = require('./db');
 const fs = require('fs');
 
+
+// Initialize Database Schema on Startup
+const initDb = async () => {
+    try {
+        const schema = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
+        await db.query(schema);
+        console.log('Database schema initialized successfully.');
+    } catch (err) {
+        console.error('Failed to initialize database schema:', err);
+    }
+};
+initDb();
+
 const app = express();
 const PORT = process.env.PORT || 8080;
 
