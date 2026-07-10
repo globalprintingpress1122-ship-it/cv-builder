@@ -12,5 +12,3 @@ services:
 
 databases:
   - name: cv-builder-db
-    databaseName: cvbuilder
-    user: postgres
