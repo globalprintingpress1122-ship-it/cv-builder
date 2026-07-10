@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Professional CV Builder</title>
+  <!-- Import Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Import html2pdf.js for auto PDF download -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  
+  <!-- Inlined Styles to allow running locally without CORS errors -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Loading Overlay -->
+  <div id="loadingOverlay" class="hidden">
+    <div class="spinner"></div>
+    <h2 id="loadingText">Generating CV...</h2>
+  </div>
+
+  <!-- Navigation Bar -->
+  <div class="navbar">
+    <div><strong>CV Builder Dashboard</strong></div>
+    <div>
+      <a href="?page=Admin" target="_blank">Admin Dashboard</a>
+      <a href="?page=Search" target="_blank">Search Directory</a>
+    </div>
+  </div>
+
+  <div class="app-container">
+    
+    <!-- Left Panel: Input Form -->
+    <div class="form-section">
+      
+      <!-- Unified Search & Load Saved CV Section -->
+      <div class="form-card" style="border: 2px solid var(--accent-color); background-color: #f0f9ff; margin-bottom: 1.5rem;">
+        <h3 style="color: var(--accent-color); border-bottom-color: #bae6fd; margin-bottom: 0.75rem;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          Search & Load Saved CV
+        </h3>
+        <div style="display: flex; gap: 8px;">
+          <input type="text" id="dbSearchInput" placeholder="Enter Name or CNIC..." style="flex: 1;" onkeypress="if(event.key === 'Enter') { searchDb(); event.preventDefault(); }">
+          <button type="button" class="btn btn-primary" onclick="searchDb()" style="padding: 0.6rem 1.2rem;">Search</button>
+        </div>
+        <div id="dbSearchResults" style="display: none; margin-top: 10px; max-height: 180px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: var(--radius-sm); background: white; box-shadow: var(--shadow-sm);">
+          <!-- Dynamic results populated by JavaScript -->
+        </div>
+        <div style="display: flex; gap: 8px; margin-top: 12px; border-top: 1px dashed #bae6fd; padding-top: 10px;">
+          <button type="button" class="btn btn-secondary" onclick="exportDatabase()" style="flex: 1; padding: 6px 10px; font-size: 0.78rem; background-color: #e0f2fe; color: #0369a1; border-color: #bae6fd; font-weight: 600;">💾 Backup All CVs</button>
+          <button type="button" class="btn btn-secondary" onclick="document.getElementById('dbImportFile').click()" style="flex: 1; padding: 6px 10px; font-size: 0.78rem; background-color: #e0f2fe; color: #0369a1; border-color: #bae6fd; font-weight: 600;">📂 Import Backup</button>
+          <input type="file" id="dbImportFile" style="display: none;" accept=".json" onchange="importDatabase(this)">
+        </div>
+      </div>
+
+      <h1>Create Your Resume</h1>
+      <p class="subtitle">Enter your details below to generate a professional A4-sized CV in real-time.</p>
+      
+      <form id="cvForm">
+        <!-- Hidden field to track row / record index being updated -->
+        <input type="hidden" id="recordId" name="recordId">
+
+        <!-- CARD 1: PERSONAL INFORMATION -->
+        <div class="form-card">
+          <h3>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            Personal Information
+          </h3>
+          
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Full Name *</label>
+              <input type="text" id="fullName" name="fullName" required placeholder="e.g. Muhammad Ali" oninput="updatePreview()">
+            </div>
+            
+            <div class="form-group">
+              <label id="labelFatherHusband">Father's Name / Husband's Name</label>
+              <div style="display:flex; gap:8px; align-items:center;">
+                <select id="fatherHusbandType" name="fatherHusbandType" onchange="updatePreview()" style="flex:0 0 auto; width:auto;">
+                  <option value="Father">Father</option>
+                  <option value="Husband">Husband</option>
+                </select>
+                <input type="text" id="fatherName" name="fatherName" placeholder="e.g. Muhammad Khan" oninput="updatePreview()" style="flex:1;">
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label>Date of Birth</label>
+              <input type="date" id="dob" name="dob" oninput="updatePreview()">
+            </div>
+            
+            <div class="form-group">
+              <label>CNIC / ID Number</label>
+              <input type="text" id="cnic" name="cnic" placeholder="3520261247271" maxlength="15" oninput="formatCNIC(this)">
+              <small style="color:#64748b; font-size:0.78rem;">Sirf numbers likhein, format khud ban jaye ga: 35202-6124727-1</small>
+            </div>
+
+            <div class="form-group">
+              <label>Phone Number *</label>
+              <input type="text" id="phone" name="phone" placeholder="e.g. 0300-1234567" oninput="updatePreview()">
+            </div>
+
+            <div class="form-group">
+              <label>Gender</label>
+              <select id="gender" name="gender" onchange="updatePreview()">
+                <option value="">Select Gender</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label>Nationality</label>
+              <input type="text" id="nationality" name="nationality" value="Pakistani" placeholder="e.g. Pakistani" oninput="updatePreview()">
+            </div>
+            
+            <div class="form-group">
+              <label>Marital Status</label>
+              <select id="maritalStatus" name="maritalStatus" onchange="updatePreview()">
+                <option value="">Select Status</option>
+                <option value="Married">Married</option>
+                <option value="Unmarried">Unmarried</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label>Religion</label>
+              <select id="religion" name="religion" onchange="updatePreview()">
+                <option value="">Select Religion</option>
+                <option value="Islam">Islam</option>
+                <option value="Christian">Christian</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+
+            <div class="form-group full-width">
+              <label>Address</label>
+              <input type="text" id="address" name="address" placeholder="e.g. House # 2, Main Bazar, Lahore" oninput="updatePreview()">
+            </div>
+            <div class="form-group full-width">
+              <label>Email Address (Optional)</label>
+              <input type="email" id="email" name="email" placeholder="e.g. name@gmail.com" oninput="updatePreview()">
+            </div>
+          </div>
+          
+          <div class="form-group" style="margin-top: 1rem;">
+            <label>Languages Spoken</label>
+            <div class="checkbox-group">
+              <label class="checkbox-label"><input type="checkbox" name="languages" value="Urdu" onchange="updatePreview()"> Urdu</label>
+              <label class="checkbox-label"><input type="checkbox" name="languages" value="English" onchange="updatePreview()"> English</label>
+              <label class="checkbox-label"><input type="checkbox" name="languages" value="Punjabi" onchange="updatePreview()"> Punjabi</label>
+              <label class="checkbox-label"><input type="checkbox" name="languages" value="Pashto" onchange="updatePreview()"> Pashto</label>
+              <label class="checkbox-label"><input type="checkbox" name="languages" value="Hindko" onchange="updatePreview()"> Hindko</label>
+              <label class="checkbox-label"><input type="checkbox" name="languages" value="Saraiki" onchange="updatePreview()"> Saraiki</label>
+              <label class="checkbox-label"><input type="checkbox" name="languages" value="Sindhi" onchange="updatePreview()"> Sindhi</label>
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-top: 1rem; margin-bottom: 0;">
+            <label>Profile Picture (Optional)</label>
+            <input type="file" id="profilePic" accept="image/*" onchange="handleImageUpload(event)">
+            <input type="hidden" id="profilePicData" name="profilePicData">
+            <input type="hidden" id="profilePicName" name="profilePicName">
+          </div>
+        </div>
+
+        <!-- CARD 2: OBJECTIVE -->
+        <div class="form-card">
+          <h3>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon></svg>
+            Professional Objective
+          </h3>
+          <div class="form-group" style="margin-bottom: 0;">
+            <textarea id="objective" name="objective" rows="4" oninput="updatePreview()">To secure a challenging position in a reputable organization where I can utilize my abilities, learn new skills, and contribute to the success of the company. I am committed to maintaining high professional standards, adapting to new environments, and achieving organizational goals through dedication, teamwork, and continuous improvement.</textarea>
+          </div>
+        </div>
+
+        <!-- CARD 3: EDUCATION -->
+        <div class="form-card">
+          <h3>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"></path><path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5"></path></svg>
+            Educational Qualification
+          </h3>
+          <div id="educationList" class="dynamic-list">
+            <!-- Dynamic education rows will be added here -->
+          </div>
+          <button type="button" class="btn btn-secondary" onclick="addEducation()">+ Add Education</button>
+        </div>
+
+        <!-- CARD 4: WORK EXPERIENCE -->
+        <div class="form-card">
+          <h3>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
+            Work Experience
+          </h3>
+          <div id="experienceList" class="dynamic-list">
+            <!-- Dynamic experience rows will be added here -->
+          </div>
+          <button type="button" class="btn btn-secondary" onclick="addExperience()">+ Add Experience</button>
+        </div>
+
+        <!-- CARD 5: OTHER SKILLS / ABILITIES -->
+        <div class="form-card">
+          <h3>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="7"></circle><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline></svg>
+            Other Skills & Abilities
+          </h3>
+          <div class="form-group" style="margin-bottom: 0;">
+            <div class="checkbox-group">
+              <label class="checkbox-label"><input type="checkbox" name="skills" value="Positive Thinking" onchange="updatePreview()"> Positive Thinking</label>
+              <label class="checkbox-label"><input type="checkbox" name="skills" value="Ability to Take Challenges" onchange="updatePreview()"> Ability to Take Challenges</label>
+              <label class="checkbox-label"><input type="checkbox" name="skills" value="Motives" onchange="updatePreview()"> Motives</label>
+              <label class="checkbox-label"><input type="checkbox" name="skills" value="Sincere" onchange="updatePreview()"> Sincere</label>
+              <label class="checkbox-label"><input type="checkbox" name="skills" value="Confident" onchange="updatePreview()"> Confident</label>
+              <label class="checkbox-label"><input type="checkbox" name="skills" value="Hard Working" onchange="updatePreview()"> Hard Working</label>
+              <label class="checkbox-label"><input type="checkbox" name="skills" value="Internet Surfing" onchange="updatePreview()"> Internet Surfing</label>
+              <label class="checkbox-label"><input type="checkbox" name="skills" value="Email Management" onchange="updatePreview()"> Email</label>
+              <label class="checkbox-label"><input type="checkbox" name="skills" value="Communication Skills" onchange="updatePreview()"> Communication</label>
+              <label class="checkbox-label"><input type="checkbox" name="skills" value="Team Work" onchange="updatePreview()"> Team Work</label>
+            </div>
+          </div>
+        </div>
+
+        <!-- CARD 6: HOBBIES / INTERESTS -->
+        <div class="form-card">
+          <h3>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+            Hobbies & Interests
+          </h3>
+          <div id="hobbiesList" class="dynamic-list">
+            <!-- Dynamic hobbies rows will be added here -->
+          </div>
+          <button type="button" class="btn btn-secondary" onclick="addHobby()">+ Add Hobby</button>
+        </div>
+
+        <!-- CARD 7: REFERENCE -->
+        <div class="form-card">
+          <h3>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+            References
+          </h3>
+          <div class="form-group" style="margin-bottom: 0;">
+            <textarea id="referenceText" name="referenceText" rows="2" oninput="updatePreview()">It will be furnished on demand.</textarea>
+          </div>
+        </div>
+
+        <!-- ACTIONS ROW -->
+        <div class="action-buttons">
+          <button type="submit" class="btn btn-primary" id="btnGenerate">Generate & Save CV</button>
+          <button type="button" class="btn btn-secondary" onclick="printCV()">Print CV</button>
+          <button type="button" class="btn btn-secondary" onclick="resetForm()">Reset Fields</button>
+        </div>
+
+      </form>
+    </div>
+
+    <!-- Right Panel: Live CV Preview -->
+    <div class="preview-section">
+      <div id="cvPreview" class="cv-preview">
+        <!-- Header: Name, CV logo, contact info, and Profile Picture Box -->
+        <div class="cv-header" id="previewHeader" style="display: flex; gap: 15px; align-items: flex-start; justify-content: space-between; position: relative; width: 100%;">
+          <div style="display: flex; gap: 15px; align-items: flex-start; flex-grow: 1; min-width: 0;">
+            <div style="background-color: #1e3a8a; color: white; width: 60px; height: 60px; display: flex; justify-content: center; align-items: center; border-radius: 8px; font-size: 20pt; font-weight: 800; flex-shrink: 0;">
+              CV
+            </div>
+            <div style="flex-grow: 1; min-width: 0;">
+              <div id="previewName" class="cv-name" style="word-wrap: break-word; overflow-wrap: break-word;">YOUR NAME HERE</div>
+              <div id="previewContactDetails" style="font-size: 9.5pt; color: #475569; margin-top: 2mm; font-weight: 500; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; width: 100%;"></div>
+            </div>
+          </div>
+          
+          <!-- Profile Picture Box (Inside Header on the right) -->
+          <div class="cv-photo-container" style="position: static; margin-left: 15px; flex-shrink: 0;">
+            <svg id="photoPlaceholderIcon" viewBox="0 0 24 24">
+              <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+            </svg>
+            <img id="previewPhoto" class="cv-photo" src="" alt="Profile Photo">
+          </div>
+        </div>
+
+        <!-- Two-column Body Grid -->
+        <div class="cv-body-grid">
+          
+          <!-- Left Column -->
+          <div class="cv-sidebar">
+            
+            <div class="cv-section">
+              <div class="cv-section-title">Personal Info</div>
+              <table class="cv-details-table">
+                <tr><td class="label-col" id="previewFatherLabel">Father's Name</td><td class="colon-col">:</td><td class="val-col"><span id="previewFatherName">N/A</span></td></tr>
+                <tr><td class="label-col">Date of Birth</td><td class="colon-col">:</td><td class="val-col"><span id="previewDOB">N/A</span></td></tr>
+                <tr><td class="label-col">CNIC</td><td class="colon-col">:</td><td class="val-col"><span id="previewCNIC">N/A</span></td></tr>
+                <tr><td class="label-col">Gender</td><td class="colon-col">:</td><td class="val-col"><span id="previewGender">N/A</span></td></tr>
+                <tr><td class="label-col">Nationality</td><td class="colon-col">:</td><td class="val-col"><span id="previewNationality">Pakistani</span></td></tr>
+                <tr><td class="label-col">Marital Status</td><td class="colon-col">:</td><td class="val-col"><span id="previewMaritalStatus">N/A</span></td></tr>
+                <tr><td class="label-col">Religion</td><td class="colon-col">:</td><td class="val-col"><span id="previewReligion">N/A</span></td></tr>
+              </table>
+            </div>
+
+            <div class="cv-section">
+              <div class="cv-section-title">Skills</div>
+              <ul id="previewSkills" class="cv-skills-list">
+                <!-- Dynamic Skills -->
+              </ul>
+            </div>
+
+            <div class="cv-section">
+              <div class="cv-section-title">Languages</div>
+              <ul id="previewLanguagesList" class="cv-skills-list">
+                <!-- Dynamic Languages -->
+              </ul>
+            </div>
+
+            <div class="cv-section">
+              <div class="cv-section-title">Hobbies</div>
+              <ul id="previewHobbies" class="cv-hobbies-list">
+                 <!-- Dynamic Hobbies -->
+              </ul>
+            </div>
+
+          </div>
+
+          <!-- Right Column -->
+          <div class="cv-main">
+            
+            <div class="cv-section">
+              <div class="cv-section-title">Career Objective</div>
+              <div id="previewObjective" class="cv-objective-text">To secure a challenging position in a reputable organization where I can utilize my abilities, learn new skills, and contribute to the success of the company.</div>
+            </div>
+
+            <div class="cv-section">
+              <div class="cv-section-title">Education</div>
+              <div id="previewEducation" class="cv-timeline">
+                <!-- Dynamic Education Timeline -->
+              </div>
+            </div>
+
+            <div class="cv-section">
+              <div class="cv-section-title">Work Experience</div>
+              <div id="previewExperience" class="cv-timeline">
+                <!-- Dynamic Experience Timeline -->
+              </div>
+            </div>
+
+            <div class="cv-section">
+              <div class="cv-section-title">Reference</div>
+              <div id="previewReference" class="cv-reference-text">It will be furnished on demand.</div>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Inlined JavaScript to allow running locally without CORS errors -->
+  <script src="app.js"></script>
+
+</body>
+</html>

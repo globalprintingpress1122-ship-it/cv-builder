@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Search Candidates - CV Builder</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .search-container { padding: 2rem; max-width: 800px; margin: 0 auto; }
+    .search-box { display: flex; gap: 1rem; margin-bottom: 2rem; }
+    .search-box input { flex: 1; padding: 1rem; font-size: 1.1rem; }
+    .result-card { background: var(--white); padding: 1.5rem; border: 1px solid var(--border-color); border-radius: 8px; margin-bottom: 1rem; }
+    .result-card h3 { margin-top: 0; color: var(--primary-color); }
+    .result-details { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; font-size: 0.9rem; margin-bottom: 1rem; }
+  </style>
+</head>
+<body>
+  <div class="navbar">
+    <div><strong>CV Builder - Search</strong></div>
+    <div>
+      <a href="index.html">Back to Form</a>
+      <a href="admin.html">Admin Dashboard</a>
+    </div>
+  </div>
+
+  <div class="search-container">
+    <h1>Search Candidates</h1>
+    
+    <div class="search-box">
+      <input type="text" id="searchInput" placeholder="Enter Name or CNIC..." onkeypress="handleKeyPress(event)">
+      <button class="btn btn-primary" onclick="performSearch()">Search</button>
+    </div>
+
+    <div id="loading" class="hidden text-center">Searching...</div>
+    
+    <div id="resultsContainer"></div>
+  </div>
+
+  <script>
+    function handleKeyPress(e) {
+      if(e.key === 'Enter') performSearch();
+    }
+
+    async function performSearch() {
+      const query = document.getElementById('searchInput').value.trim();
+      if (!query) return;
+      
+      document.getElementById('loading').classList.remove('hidden');
+      document.getElementById('resultsContainer').innerHTML = '';
+
+      try {
+          const res = await fetch('/api/search?q=' + encodeURIComponent(query));
+          const data = await res.json();
+          displayResults(data);
+      } catch (err) {
+          document.getElementById('loading').classList.add('hidden');
+          alert("Server error: " + err.message);
+      }
+    }
+
+    function displayResults(results) {
+      document.getElementById('loading').classList.add('hidden');
+      const container = document.getElementById('resultsContainer');
+      
+      if (results.error) {
+        container.innerHTML = `<p style="color:red">Error: ${results.error}</p>`;
+        return;
+      }
+      
+      if (results.length === 0) {
+        container.innerHTML = '<p>No candidates found matching your query.</p>';
+        return;
+      }
+
+      let html = '';
+      results.forEach(res => {
+         html += `
+          <div class="result-card">
+            <h3>${res.name} ${res.fatherName ? '(' + res.fatherName + ')' : ''}</h3>
+            <div class="result-details">
+              <div><strong>CNIC:</strong> ${res.cnic || 'N/A'}</div>
+              <div><strong>DOB:</strong> ${res.dob || 'N/A'}</div>
+              <div style="grid-column: span 2"><strong>Skills:</strong> ${res.skills || 'None'}</div>
+            </div>
+            <!-- In a full implementation, you'd store the generated PDF URL in DB and link it here -->
+            <button class="btn btn-secondary btn-sm" onclick="alert('Generated PDFs are stored in the server \\'pdfs\\' directory. To link them directly, save the PDF URL to the DB during creation.')">Info</button>
+          </div>
+         `;
+      });
+      container.innerHTML = html;
+    }
+  </script>
+</body>
+</html>
