@@ -6,9 +6,4 @@ services:
     startCommand: node server.js
     envVars:
       - key: DATABASE_URL
-        fromDatabase:
-          name: cv-builder-db
-          property: connectionString
-
-databases:
-  - name: cv-builder-db
+        value: postgresql://neondb_owner:npg_d1n8XQarhOIw@ep-old-night-aturr3q4.c-9.us-east-1.aws.neon.tech/neondb?sslmode=require

@@ -1,10 +1,5 @@
--- Drop tables if they exist to recreate cleanly
-DROP TABLE IF EXISTS education;
-DROP TABLE IF EXISTS experience;
-DROP TABLE IF EXISTS candidates;
-
--- Main Candidates Table
-CREATE TABLE candidates (
+-- Main Candidates Table (CREATE IF NOT EXISTS - safe for re-runs)
+CREATE TABLE IF NOT EXISTS candidates (
     id SERIAL PRIMARY KEY,
     full_name VARCHAR(255) NOT NULL,
     father_name VARCHAR(255),
@@ -19,12 +14,14 @@ CREATE TABLE candidates (
     skills TEXT,
     hobbies TEXT,
     reference_text TEXT,
-    photo_data TEXT, -- Can store base64 string or a file path
+    photo_data TEXT,
+    phone VARCHAR(50),
+    address TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Education Table
-CREATE TABLE education (
+CREATE TABLE IF NOT EXISTS education (
     id SERIAL PRIMARY KEY,
     candidate_id INTEGER REFERENCES candidates(id) ON DELETE CASCADE,
     degree VARCHAR(255),
@@ -33,8 +30,7 @@ CREATE TABLE education (
 );
 
 -- Experience Table
--- 'years' column stores combined duration e.g. "2 Years", "6 Months", "1 Year"
-CREATE TABLE experience (
+CREATE TABLE IF NOT EXISTS experience (
     id SERIAL PRIMARY KEY,
     candidate_id INTEGER REFERENCES candidates(id) ON DELETE CASCADE,
     years VARCHAR(50),
