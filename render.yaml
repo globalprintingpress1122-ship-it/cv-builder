@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: cv-builder-app
+    env: node
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: cv-builder-db
+          property: connectionString
+
+databases:
+  - name: cv-builder-db
+    databaseName: cvbuilder
+    user: postgres
