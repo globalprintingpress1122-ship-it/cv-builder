@@ -391,15 +391,68 @@ let eduCount = 0;
 
     
 function printCV() {
-      // Just call submitForm to use the perfect backend PDF generation
-      const form = document.getElementById('cvForm');
-      if (form.checkValidity()) {
-        submitForm(); 
-      } else {
-        alert("Please fill in required fields (Name and Phone) before printing to ensure your CV is saved correctly.");
-        form.reportValidity();
-      }
+  const cvElement = document.getElementById('cvPreview');
+  if (!cvElement) return;
+
+  // Collect all styles from the page
+  let styles = '';
+  document.querySelectorAll('style').forEach(s => styles += s.innerHTML);
+
+  // Get the inner content
+  const content = cvElement.innerHTML;
+
+  // Open print window
+  const printWin = window.open('', '_blank', 'width=900,height=700');
+  if (!printWin) {
+    alert('Popup blocked! Please allow popups for this site and try again.');
+    return;
+  }
+
+  printWin.document.write(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>CV - ${document.getElementById('fullName').value || 'Candidate'}</title>
+      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+      <style>
+        ${styles}
+        * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+        @page { size: A4 portrait; margin: 0; }
+        html, body {
+          margin: 0; padding: 0;
+          background: white !important;
+          width: 210mm;
+        }
+        .cv-preview {
+          width: 210mm !important;
+          min-height: 297mm !important;
+          height: auto !important;
+          padding: 15mm !important;
+          box-sizing: border-box !important;
+          transform: none !important;
+          box-shadow: none !important;
+          overflow: visible !important;
+          font-size: 10pt !important;
+          display: block !important;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="cv-preview">${content}</div>
+      <script>
+        window.onload = function() {
+          setTimeout(function() { window.print(); }, 500);
+        };
+      <\/script>
+    </body>
+    </html>
+  `);
+  printWin.document.close();
 }
+
+
 
 
     function exportDatabase() {
