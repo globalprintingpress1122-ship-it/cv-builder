@@ -1,41 +1,75 @@
 let eduCount = 0;
     let expCount = 0;
     let hobbyCount = 0;
+    const API_BASE_URL = 'http://localhost:8080';
 
-    // --- CHROME EXTENSION IDENTITY ---
+    // --- IDENTITY (Chrome Extension or Web) ---
     let userEmail = 'anonymous'; // default
 
     window.addEventListener('DOMContentLoaded', () => {
+      
+      const setBadge = (email) => {
+        const navbar = document.querySelector('.navbar');
+        if (navbar && !document.getElementById('emailBadge')) {
+          const emailBadge = document.createElement('div');
+          emailBadge.id = 'emailBadge';
+          emailBadge.style.cssText = 'background: #0284c7; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; margin-left: auto; margin-right: 20px; display: flex; align-items: center; gap: 8px;';
+          emailBadge.innerHTML = `<span>${email}</span>`;
+          navbar.appendChild(emailBadge);
+        }
+      };
+
+      const loadUserCv = (email) => {
+        fetch((window.location.protocol === 'chrome-extension:' ? API_BASE_URL : '') + '/api/search?email=' + encodeURIComponent(email))
+          .then(res => res.json())
+          .then(data => {
+             if (data && data.length > 0) {
+                 console.log('Found previous CV, auto-loading...');
+                 loadRecordForEditing(data[0].id);
+             }
+          })
+          .catch(err => console.error('Auto-load failed:', err));
+      };
+
       // Check if running as a Chrome extension
       if (typeof chrome !== 'undefined' && chrome.identity) {
         chrome.identity.getProfileUserInfo((userInfo) => {
           if (userInfo && userInfo.email) {
             userEmail = userInfo.email;
-            console.log('Logged in as:', userEmail);
-            // Add a visual indicator in the navbar
-            const navbar = document.querySelector('.navbar');
-            if (navbar) {
-              const emailBadge = document.createElement('div');
-              emailBadge.style.cssText = 'background: #0284c7; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; margin-left: auto; margin-right: 20px;';
-              emailBadge.innerText = userEmail;
-              navbar.appendChild(emailBadge);
-            }
-            
-            // Auto-load latest CV for this user
-            fetch('/api/search?email=' + encodeURIComponent(userEmail))
-              .then(res => res.json())
-              .then(data => {
-                 if (data && data.length > 0) {
-                     console.log('Found previous CV, auto-loading...');
-                     loadRecordForEditing(data[0].id);
-                 }
-              })
-              .catch(err => console.error('Auto-load failed:', err));
-
+            setBadge(userEmail);
+            loadUserCv(userEmail);
           } else {
-            console.warn('Chrome identity found no email. User might not be logged into Chrome sync.');
+            console.warn('Chrome identity found no email.');
           }
         });
+      } else {
+        // --- Web Version Fallback ---
+        // If they open the website directly, ask for their email
+        const savedEmail = localStorage.getItem('web_user_email');
+        if (savedEmail) {
+            userEmail = savedEmail;
+            setBadge(userEmail);
+            loadUserCv(userEmail);
+        } else {
+            const navbar = document.querySelector('.navbar');
+            if (navbar) {
+                const loginBtn = document.createElement('button');
+                loginBtn.innerText = 'Login to Sync CV';
+                loginBtn.className = 'btn btn-secondary btn-sm';
+                loginBtn.style.cssText = 'margin-left: auto; margin-right: 20px;';
+                loginBtn.onclick = () => {
+                    const email = prompt("Enter your email address to load or save your CV:");
+                    if (email && email.includes('@')) {
+                        userEmail = email.trim();
+                        localStorage.setItem('web_user_email', userEmail);
+                        loginBtn.remove();
+                        setBadge(userEmail);
+                        loadUserCv(userEmail);
+                    }
+                };
+                navbar.appendChild(loginBtn);
+            }
+        }
       }
     });
 
@@ -520,7 +554,7 @@ function printCV() {
       resultsContainer.style.display = 'block';
       
       try {
-        const res = await fetch('/api/search?q=' + encodeURIComponent(query) + '&email=' + encodeURIComponent(userEmail));
+        const res = await fetch(API_BASE_URL + '/api/search?q=' + encodeURIComponent(query) + '&email=' + encodeURIComponent(userEmail));
         const data = await res.json();
         displayDbResults(data);
       } catch (err) {
@@ -558,7 +592,7 @@ function printCV() {
       if (searchInput) searchInput.value = '';
       
       try {
-        const res = await fetch('/api/cv/' + id);
+        const res = await fetch(API_BASE_URL + '/api/cv/' + id);
         const data = await res.json();
         if (data.success) {
            populateFormWithData(data);
@@ -701,7 +735,7 @@ async function submitForm() {
   };
 
   try {
-    const res = await fetch('/api/cv', {
+    const res = await fetch(API_BASE_URL + '/api/cv', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
