@@ -391,65 +391,7 @@ let eduCount = 0;
 
     
 function printCV() {
-  const cvElement = document.getElementById('cvPreview');
-  const previewContent = cvElement.innerHTML;
-
-  let stylesContent = '';
-  document.querySelectorAll('style, link[rel="stylesheet"]').forEach(el => {
-    stylesContent += el.outerHTML;
-  });
-
-  const printWindow = window.open('', '_blank');
-  if (!printWindow) {
-    alert('Please allow popups to print your CV.');
-    return;
-  }
-
-  printWindow.document.write(`
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <title>CV Print</title>
-        <meta charset="UTF-8">
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-        ${stylesContent}
-        <style>
-          @page { size: A4; margin: 0; }
-          * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-          body {
-            background: white !important;
-            margin: 0 !important;
-            padding: 0 !important;
-          }
-          .cv-preview {
-            position: absolute !important;
-            left: 0 !important; top: 0 !important;
-            width: 210mm !important;
-            min-height: 297mm !important;
-            padding: 15mm !important;
-            border: none !important;
-            box-shadow: none !important;
-            transform: none !important;
-            margin: 0 !important;
-            display: flex !important;
-            flex-direction: column !important;
-            box-sizing: border-box !important;
-            overflow: visible !important;
-            background: white !important;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="cv-preview">${previewContent}</div>
-        <script>
-          window.addEventListener('load', function() {
-            setTimeout(function() { window.print(); }, 500);
-          });
-        <\/script>
-      </body>
-    </html>
-  `);
-  printWindow.document.close();
+  window.print();
 }
 
 
