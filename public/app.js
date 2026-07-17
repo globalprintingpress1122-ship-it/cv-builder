@@ -700,27 +700,64 @@ async function submitForm() {
     if (data.success) {
       showNotification('CV Saved! Generating PDF...');
       hideLoading();
-      // Client-side PDF generation using html2pdf
+
+      // --- Client-side PDF with transform fix ---
       const cvElement = document.getElementById('cvPreview');
       const fullName = document.getElementById('fullName').value || 'Candidate';
       const cnic = document.getElementById('cnic').value || 'CV';
       const filename = `CV_${fullName.replace(/\s+/g, '_')}_${cnic}.pdf`;
 
+      // 1. Clone the element so we don't disturb the screen
+      const clone = cvElement.cloneNode(true);
+
+      // 2. Reset all transforms and set exact A4 pixel size for capture
+      clone.style.cssText = `
+        position: fixed !important;
+        top: -9999px !important;
+        left: -9999px !important;
+        width: 794px !important;
+        height: 1123px !important;
+        transform: none !important;
+        transform-origin: unset !important;
+        padding: 57px !important;
+        box-sizing: border-box !important;
+        background: white !important;
+        overflow: visible !important;
+        display: flex !important;
+        flex-direction: column !important;
+        font-size: 10pt !important;
+        font-family: 'Inter', sans-serif !important;
+        color: #1e293b !important;
+        line-height: 1.45 !important;
+        z-index: -9999 !important;
+      `;
+      document.body.appendChild(clone);
+
       const opt = {
         margin: 0,
         filename: filename,
         image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, logging: false },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        html2canvas: {
+          scale: 2,
+          useCORS: true,
+          logging: false,
+          width: 794,
+          height: 1123,
+          windowWidth: 794
+        },
+        jsPDF: { unit: 'px', format: [794, 1123], orientation: 'portrait' }
       };
 
       showLoading('Downloading PDF...');
-      html2pdf().from(cvElement).set(opt).save().then(() => {
+      html2pdf().from(clone).set(opt).save().then(() => {
+        document.body.removeChild(clone);
         hideLoading();
         showNotification('PDF Downloaded Successfully!');
       }).catch(err => {
+        document.body.removeChild(clone);
         hideLoading();
         console.error('PDF error:', err);
+        alert('PDF generation failed: ' + err.message);
       });
 
     } else {
@@ -731,6 +768,7 @@ async function submitForm() {
     alert('Network Error: ' + err.message);
   }
 }
+
 
 function onSuccess(response) {
 
