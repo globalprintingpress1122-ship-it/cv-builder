@@ -392,66 +392,65 @@ let eduCount = 0;
     
 function printCV() {
   const cvElement = document.getElementById('cvPreview');
-  if (!cvElement) return;
+  const previewContent = cvElement.innerHTML;
 
-  // Collect all styles from the page
-  let styles = '';
-  document.querySelectorAll('style').forEach(s => styles += s.innerHTML);
+  let stylesContent = '';
+  document.querySelectorAll('style, link[rel="stylesheet"]').forEach(el => {
+    stylesContent += el.outerHTML;
+  });
 
-  // Get the inner content
-  const content = cvElement.innerHTML;
-
-  // Open print window
-  const printWin = window.open('', '_blank', 'width=900,height=700');
-  if (!printWin) {
-    alert('Popup blocked! Please allow popups for this site and try again.');
+  const printWindow = window.open('', '_blank');
+  if (!printWindow) {
+    alert('Please allow popups to print your CV.');
     return;
   }
 
-  printWin.document.write(`
+  printWindow.document.write(`
     <!DOCTYPE html>
     <html>
-    <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>CV - ${document.getElementById('fullName').value || 'Candidate'}</title>
-      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-      <style>
-        ${styles}
-        * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-        @page { size: A4 portrait; margin: 0; }
-        html, body {
-          margin: 0; padding: 0;
-          background: white !important;
-          width: 210mm;
-        }
-        .cv-preview {
-          width: 210mm !important;
-          min-height: 297mm !important;
-          height: auto !important;
-          padding: 15mm !important;
-          box-sizing: border-box !important;
-          transform: none !important;
-          box-shadow: none !important;
-          overflow: visible !important;
-          font-size: 10pt !important;
-          display: block !important;
-        }
-      </style>
-    </head>
-    <body>
-      <div class="cv-preview">${content}</div>
-      <script>
-        window.onload = function() {
-          setTimeout(function() { window.print(); }, 500);
-        };
-      <\/script>
-    </body>
+      <head>
+        <title>CV Print</title>
+        <meta charset="UTF-8">
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+        ${stylesContent}
+        <style>
+          @page { size: A4; margin: 0; }
+          * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          body {
+            background: white !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+          .cv-preview {
+            position: absolute !important;
+            left: 0 !important; top: 0 !important;
+            width: 210mm !important;
+            min-height: 297mm !important;
+            padding: 15mm !important;
+            border: none !important;
+            box-shadow: none !important;
+            transform: none !important;
+            margin: 0 !important;
+            display: flex !important;
+            flex-direction: column !important;
+            box-sizing: border-box !important;
+            overflow: visible !important;
+            background: white !important;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="cv-preview">${previewContent}</div>
+        <script>
+          window.addEventListener('load', function() {
+            setTimeout(function() { window.print(); }, 500);
+          });
+        <\/script>
+      </body>
     </html>
   `);
-  printWin.document.close();
+  printWindow.document.close();
 }
-
 
 
 
