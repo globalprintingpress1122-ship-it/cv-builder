@@ -1,7 +1,6 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const puppeteer = require('puppeteer');
 const db = require('./db');
 const fs = require('fs');
 
@@ -90,64 +89,11 @@ app.post('/api/cv', async (req, res) => {
 
         await client.query('COMMIT');
 
-        
-        // PDF Generation
-        const puppeteer = require('puppeteer');
-        const pdfFileName = `${formData.fullName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${Date.now()}.pdf`;
-        const pdfPath = path.join(__dirname, 'pdfs', pdfFileName);
-        
-        const cssContent = fs.readFileSync(path.join(__dirname, 'public', 'styles.css'), 'utf8');
-        
-        // Wrap the frontend HTML in a basic document with the exact same CSS
-        const htmlContent = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="UTF-8">
-          <style>
-            ${cssContent}
-            @page { size: A4 portrait; margin: 0; }
-            body { margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; background: white; }
-            .cv-preview {
-                position: relative !important;
-                width: 210mm !important;
-                height: 297mm !important;
-                padding: 15mm !important;
-                box-sizing: border-box !important;
-                margin: 0 !important;
-                border: none !important;
-                box-shadow: none !important;
-                transform: none !important;
-            }
-          </style>
-          <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-        </head>
-        <body>
-          ${formData.previewHtml}
-        </body>
-        </html>
-        `;
-        
-        const browser = await puppeteer.launch({
-            headless: true,
-            executablePath: process.env.PUPPETEER_EXEC_PATH || puppeteer.executablePath(),
-            args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu', '--single-process', '--no-zygote']
-        });
-        const page = await browser.newPage();
-        await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
-        await page.emulateMediaType('print');
-        await page.pdf({ 
-            path: pdfPath, 
-            format: 'A4',
-            printBackground: true,
-            margin: { top: 0, right: 0, bottom: 0, left: 0 }
-        });
-        await browser.close();
-
+        // PDF is generated client-side - server just saves data
         res.json({ 
             success: true, 
             message: 'CV Saved Successfully',
-            pdfUrl: `/pdfs/${pdfFileName}`
+            pdfUrl: null
         });
 
 

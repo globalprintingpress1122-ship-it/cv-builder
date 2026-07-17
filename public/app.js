@@ -698,10 +698,31 @@ async function submitForm() {
     const data = await res.json();
     hideLoading();
     if (data.success) {
-      showNotification('CV Generated successfully!');
-      if(data.pdfUrl) {
-          window.open(data.pdfUrl, '_blank');
-      } // Trigger client-side print
+      showNotification('CV Saved! Generating PDF...');
+      hideLoading();
+      // Client-side PDF generation using html2pdf
+      const cvElement = document.getElementById('cvPreview');
+      const fullName = document.getElementById('fullName').value || 'Candidate';
+      const cnic = document.getElementById('cnic').value || 'CV';
+      const filename = `CV_${fullName.replace(/\s+/g, '_')}_${cnic}.pdf`;
+
+      const opt = {
+        margin: 0,
+        filename: filename,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, logging: false },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+
+      showLoading('Downloading PDF...');
+      html2pdf().from(cvElement).set(opt).save().then(() => {
+        hideLoading();
+        showNotification('PDF Downloaded Successfully!');
+      }).catch(err => {
+        hideLoading();
+        console.error('PDF error:', err);
+      });
+
     } else {
       alert('Error: ' + data.message);
     }
@@ -710,6 +731,7 @@ async function submitForm() {
     alert('Network Error: ' + err.message);
   }
 }
+
 function onSuccess(response) {
 
       hideLoading();
