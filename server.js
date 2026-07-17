@@ -10,6 +10,8 @@ const initDb = async () => {
     try {
         const schema = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
         await db.query(schema);
+        // Ensure user_email column exists for Chrome extension sync
+        await db.query('ALTER TABLE candidates ADD COLUMN IF NOT EXISTS user_email VARCHAR(255);');
         console.log('Database schema initialized successfully.');
     } catch (err) {
         console.error('Failed to initialize database schema:', err);
@@ -50,8 +52,8 @@ app.post('/api/cv', async (req, res) => {
             INSERT INTO candidates (
                 full_name, father_name, dob, cnic, gender, nationality, 
                 marital_status, religion, languages, objective, skills, 
-                hobbies, reference_text, photo_data
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+                hobbies, reference_text, photo_data, user_email
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
             RETURNING id
         `;
         const candidateValues = [
@@ -63,7 +65,8 @@ app.post('/api/cv', async (req, res) => {
             formData.skills ? formData.skills.join(', ') : '',
             formData.hobbies ? formData.hobbies.join(', ') : '',
             formData.referenceText, 
-            formData.profilePicData || null
+            formData.profilePicData || null,
+            formData.userEmail || 'anonymous'
         ];
         // Store address and phone as part of candidate data (we pass them through formData)
         // Note: to permanently store address/phone, run ALTER TABLE candidates ADD COLUMN address TEXT, ADD COLUMN phone VARCHAR(50);
@@ -131,16 +134,73 @@ app.get('/api/stats', async (req, res) => {
 app.get('/api/search', async (req, res) => {
     try {
         const query = req.query.q || '';
-        const searchRes = await db.query(`
-            SELECT id, full_name as name, father_name as "fatherName", dob, cnic, skills 
+        const email = req.query.email || '';
+        
+        // If an email is provided, prioritize showing their records. Otherwise normal search.
+        let sql = `
+            SELECT id, full_name as name, father_name as "fatherName", dob, cnic, skills, user_email 
             FROM candidates 
-            WHERE full_name ILIKE $1 OR cnic ILIKE $1
-            ORDER BY created_at DESC
-        `, [`%${query}%`]);
+            WHERE (full_name ILIKE $1 OR cnic ILIKE $1)
+        `;
+        let params = [`%${query}%`];
+        
+        if (email && email !== 'anonymous') {
+            sql += ` AND user_email = $2`;
+            params.push(email);
+        }
+        
+        sql += ` ORDER BY created_at DESC LIMIT 20`;
+        
+        const searchRes = await db.query(sql, params);
         
         res.json(searchRes.rows);
     } catch (err) {
         res.status(500).json({ error: err.message });
+    }
+});
+
+// ----------------------------------------------------
+// API: Get Full Candidate Details
+// ----------------------------------------------------
+app.get('/api/cv/:id', async (req, res) => {
+    try {
+        const id = req.params.id;
+        const candidateRes = await db.query('SELECT * FROM candidates WHERE id = $1', [id]);
+        
+        if (candidateRes.rows.length === 0) {
+            return res.status(404).json({ success: false, message: 'Candidate not found' });
+        }
+        const candidate = candidateRes.rows[0];
+        
+        const eduRes = await db.query('SELECT * FROM education WHERE candidate_id = $1', [id]);
+        const expRes = await db.query('SELECT * FROM experience WHERE candidate_id = $1', [id]);
+        
+        // Map DB columns back to frontend payload format
+        res.json({
+            success: true,
+            id: candidate.id,
+            fullName: candidate.full_name,
+            fatherName: candidate.father_name,
+            dob: candidate.dob,
+            cnic: candidate.cnic,
+            gender: candidate.gender,
+            nationality: candidate.nationality,
+            maritalStatus: candidate.marital_status,
+            religion: candidate.religion,
+            languages: candidate.languages ? candidate.languages.split(', ') : [],
+            objective: candidate.objective,
+            skills: candidate.skills ? candidate.skills.split(', ') : [],
+            hobbies: candidate.hobbies ? candidate.hobbies.split(', ') : [],
+            referenceText: candidate.reference_text,
+            profilePicData: candidate.photo_data,
+            phone: candidate.phone,
+            address: candidate.address,
+            userEmail: candidate.user_email,
+            education: eduRes.rows.map(e => ({ degree: e.degree, board: e.board, year: e.passing_year })),
+            experience: expRes.rows.map(e => ({ years: e.years, title: e.title, company: e.company }))
+        });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
     }
 });
 

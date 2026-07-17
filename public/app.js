@@ -2,6 +2,43 @@ let eduCount = 0;
     let expCount = 0;
     let hobbyCount = 0;
 
+    // --- CHROME EXTENSION IDENTITY ---
+    let userEmail = 'anonymous'; // default
+
+    window.addEventListener('DOMContentLoaded', () => {
+      // Check if running as a Chrome extension
+      if (typeof chrome !== 'undefined' && chrome.identity) {
+        chrome.identity.getProfileUserInfo((userInfo) => {
+          if (userInfo && userInfo.email) {
+            userEmail = userInfo.email;
+            console.log('Logged in as:', userEmail);
+            // Add a visual indicator in the navbar
+            const navbar = document.querySelector('.navbar');
+            if (navbar) {
+              const emailBadge = document.createElement('div');
+              emailBadge.style.cssText = 'background: #0284c7; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; margin-left: auto; margin-right: 20px;';
+              emailBadge.innerText = userEmail;
+              navbar.appendChild(emailBadge);
+            }
+            
+            // Auto-load latest CV for this user
+            fetch('/api/search?email=' + encodeURIComponent(userEmail))
+              .then(res => res.json())
+              .then(data => {
+                 if (data && data.length > 0) {
+                     console.log('Found previous CV, auto-loading...');
+                     loadRecordForEditing(data[0].id);
+                 }
+              })
+              .catch(err => console.error('Auto-load failed:', err));
+
+          } else {
+            console.warn('Chrome identity found no email. User might not be logged into Chrome sync.');
+          }
+        });
+      }
+    });
+
     const DEGREE_OPTIONS = [
       'No Qualification', 'Primary', 'Middle', 'Matric', 'Intermediate',
       'I.Com', 'D.Com', 'B.Com', 'B.A', 'B.Sc', 'BS',
@@ -475,30 +512,19 @@ function printCV() {
     }
 
     // --- Search & Database Loading Logic ---
-    function searchDb() {
+    async function searchDb() {
       const query = document.getElementById('dbSearchInput').value.trim();
-      if (!query) return;
       
       const resultsContainer = document.getElementById('dbSearchResults');
       resultsContainer.innerHTML = '<div style="padding:12px;color:#64748b;font-size:0.9rem;">Searching database...</div>';
       resultsContainer.style.display = 'block';
       
-      if (typeof google !== 'undefined' && google.script && google.script.run) {
-        google.script.run
-          .withSuccessHandler(displayDbResults)
-          .withFailureHandler(function(err) {
-             resultsContainer.innerHTML = `<div style="padding:12px;color:#ef4444;font-size:0.9rem;">Server Error: ${err.message}</div>`;
-          })
-          .searchCandidates(query);
-      } else {
-        // Mock DB query (Offline local mode)
-        const localDB = JSON.parse(localStorage.getItem('mock_cv_database') || '[]');
-        const q = query.toLowerCase();
-        const results = localDB.filter(rec => 
-          rec.name.toLowerCase().includes(q) || 
-          (rec.cnic && rec.cnic.toLowerCase().includes(q))
-        );
-        displayDbResults(results);
+      try {
+        const res = await fetch('/api/search?q=' + encodeURIComponent(query) + '&email=' + encodeURIComponent(userEmail));
+        const data = await res.json();
+        displayDbResults(data);
+      } catch (err) {
+        resultsContainer.innerHTML = `<div style="padding:12px;color:#ef4444;font-size:0.9rem;">Server Error: ${err.message}</div>`;
       }
     }
 
@@ -525,34 +551,24 @@ function printCV() {
       });
     }
 
-    function loadRecordForEditing(id) {
+    async function loadRecordForEditing(id) {
       showLoading("Loading candidate profile...");
       document.getElementById('dbSearchResults').style.display = 'none';
-      document.getElementById('dbSearchInput').value = '';
+      const searchInput = document.getElementById('dbSearchInput');
+      if (searchInput) searchInput.value = '';
       
-      if (typeof google !== 'undefined' && google.script && google.script.run) {
-        google.script.run
-          .withSuccessHandler(populateFormWithData)
-          .withFailureHandler(function(err) {
-             hideLoading();
-             alert("Error loading record: " + err.message);
-          })
-          .getCandidateDetails(id);
-      } else {
-        // Mock DB load
-        const localDB = JSON.parse(localStorage.getItem('mock_cv_database') || '[]');
-        const record = localDB.find(rec => rec.id == id);
-        
-        if (record && record.fullPayload) {
-          populateFormWithData({
-            success: true,
-            id: id,
-            ...record.fullPayload
-          });
+      try {
+        const res = await fetch('/api/cv/' + id);
+        const data = await res.json();
+        if (data.success) {
+           populateFormWithData(data);
         } else {
-          hideLoading();
-          alert("Error: Mock profile details not found in offline DB.");
+           hideLoading();
+           alert("Error loading record: " + data.message);
         }
+      } catch (err) {
+        hideLoading();
+        alert("Network Error: " + err.message);
       }
     }
 
@@ -678,10 +694,11 @@ async function submitForm() {
     phone: document.getElementById('phone').value,
     address: document.getElementById('address').value,
     languages: Array.from(document.querySelectorAll('input[name="languages"]:checked')).map(c => c.value),
-    skills: Array.from(document.querySelectorAll('input[name="skills"]:checked')).map(c => c.value)
+    skills: Array.from(document.querySelectorAll('input[name="skills"]:checked')).map(c => c.value),
+    hobbies: Array.from(document.querySelectorAll('input[name^="hobby_"]:not([name="hobby_new"])')).map(h => h.value).filter(v => v.trim() !== ''),
+    userEmail: userEmail,
+    previewHtml: document.getElementById('cvPreview').outerHTML
   };
-  // Add the exact HTML of the preview to send to the backend for PDF generation
-  payload.previewHtml = document.getElementById('cvPreview').outerHTML;
 
   try {
     const res = await fetch('/api/cv', {

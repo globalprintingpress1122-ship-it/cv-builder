@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "Global CV Builder",
+  "version": "1.0",
+  "description": "Build and sync your CV across any PC via your Gmail account.",
+  "permissions": [
+    "identity",
+    "identity.email",
+    "storage"
+  ],
+  "action": {
+    "default_title": "Open CV Builder"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "host_permissions": [
+    "http://*/*",
+    "https://*/*"
+  ]
+}

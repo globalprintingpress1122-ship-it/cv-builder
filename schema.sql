@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS candidates (
     photo_data TEXT,
     phone VARCHAR(50),
     address TEXT,
+    user_email VARCHAR(255),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
